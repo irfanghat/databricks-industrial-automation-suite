@@ -11,7 +11,7 @@ The **Databricks Industrial Automation Suite** is a comprehensive library design
 | Protocol                    | Status            |
 | --------------------------- | ----------------- |
 | OPC UA                      | ✅ Supported      |
-| Modbus TCP                  | ⬜ Planned        |
+| Modbus TCP                  | ⬜ In Progress    |
 | HART Communication Protocol | ⬜ Planned        |
 | MQTT                        | ⬜ Planned        |
 
