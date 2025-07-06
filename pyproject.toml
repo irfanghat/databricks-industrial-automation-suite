@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "databricks-industrial-automation-suite"
+version = "0.0.1"
+package-mode = true
+description = "A comprehensive library designed to support all major industrial automation protocols within the Databricks ecosystem."
+authors = ["Irfan Ghat <irfanghat@gmail.com>"]
+packages = [{include = "databricks_industrial_automation_suite"}]
+
+[tool.poetry.dependencies]
+asyncua = "*"
+asyncio = "*"
+cryptography = "*"
+lxml = "*"
+python = ">=3.9"
+python-dateutil = "*"
+pytz = "*"
+tabulate = "*"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
