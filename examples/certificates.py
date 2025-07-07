@@ -3,7 +3,7 @@ from databricks_industrial_automation_suite.certificate_management.certificate_m
 )
 
 cm = CertificateManager(
-    certs_dir="/path/to/certs",
+    certs_dir="/tmp/certs",
     dns_names=["opcua.demo-this.com"],  # Required for valid SAN
     ip_addresses=["127.0.0.1"],         # Optional
     uris=["urn:freeopcua:client"],      # Standard OPC UA client URI
