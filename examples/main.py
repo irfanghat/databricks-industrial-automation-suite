@@ -1,123 +1,223 @@
 """
-Real-Time Monitoring with Alerts
-=================================
-Subscribe to critical equipment and trigger alerts when thresholds are exceeded.
+Smart Subscription - Auto-Discovery
+====================================
+Automatically discovers nodes by browsing the server, then subscribes to them.
+No hardcoded node IDs needed!
 """
 
 import asyncio
-from datetime import datetime
 from databricks_industrial_automation_suite.integrations.opcua import OPCUAClient
 
 
-class PlantMonitor:
-    """Real-time plant monitoring with alert system"""
+async def find_node_by_name(client, root_path, target_name):
+    """
+    Recursively search for a node by its browse name.
     
-    def __init__(self):
-        self.thresholds = {
-            "pump1_vibration": 5.0,      # mm/s - High vibration warning
-            "pump2_vibration": 5.0,      # mm/s - High vibration warning
-            "pump2_temperature": 70.0,   # °C - Temperature warning
-            "line2_motor_temp": 85.0,    # °C - Motor overheating
-            "quality_pass_rate": 96.0,   # % - Quality below target
-        }
+    Args:
+        client: OPC UA client
+        root_path: Starting node ID (e.g., "ns=2;i=1")
+        target_name: Name to search for (e.g., "Vibration")
+    
+    Returns:
+        Node ID string or None
+    """
+    try:
+        node = await client.get_node(root_path)
+        browse_name = await node.read_browse_name()
         
-        self.alert_count = 0
-        self.values = {}
+        # Check if this is the node we're looking for
+        if target_name.lower() in str(browse_name).lower():
+            return root_path
         
-    def check_alerts(self, name, value):
-        """Check if value exceeds threshold"""
-        if name in self.thresholds:
-            threshold = self.thresholds[name]
+        # Search children
+        children = await node.get_children()
+        for child in children:
+            child_id = str(child.nodeid)
+            result = await find_node_by_name(client, child_id, target_name)
+            if result:
+                return result
+    except Exception as e:
+        pass
+    
+    return None
+
+
+async def discover_and_map_nodes(client):
+    """
+    Discover all important nodes in the manufacturing plant.
+    Returns a dictionary mapping friendly names to node IDs.
+    """
+    print("🔍 Discovering nodes...")
+    
+    # Start from the root ManufacturingPlant object
+    root = "ns=2;i=1"  # This should be ManufacturingPlant
+    
+    # Nodes we want to find
+    search_targets = [
+        # Production
+        ("line1_production_rate", "ProductionLine1", "ProductionRate"),
+        ("line1_efficiency", "ProductionLine1", "Efficiency"),
+        ("line1_motor_temp", "ProductionLine1", "MotorTemperature"),
+        ("line1_motor_vibration", "ProductionLine1", "MotorVibration"),
+        
+        ("line2_production_rate", "ProductionLine2", "ProductionRate"),
+        ("line2_efficiency", "ProductionLine2", "Efficiency"),
+        ("line2_motor_temp", "ProductionLine2", "MotorTemperature"),
+        ("line2_motor_vibration", "ProductionLine2", "MotorVibration"),
+        
+        # Pumps
+        ("pump1_flow", "Pump1", "FlowRate"),
+        ("pump1_pressure", "Pump1", "DischargePressure"),
+        ("pump1_vibration", "Pump1", "Vibration"),
+        ("pump1_temperature", "Pump1", "Temperature"),
+        
+        ("pump2_flow", "Pump2", "FlowRate"),
+        ("pump2_pressure", "Pump2", "DischargePressure"),
+        ("pump2_vibration", "Pump2", "Vibration"),  # CRITICAL!
+        ("pump2_temperature", "Pump2", "Temperature"),  # CRITICAL!
+        
+        # Mixing
+        ("mix_tank_level", "MixingSystem", "TankLevel"),
+        ("mix_tank_temp", "MixingSystem", "TankTemperature"),
+        ("mix_ph", "MixingSystem", "pH"),
+        
+        # Quality
+        ("quality_pass_rate", "QualityControl", "PassRate"),
+        ("quality_defects", "QualityControl", "DefectsFound"),
+        
+        # Energy
+        ("total_power", "Energy", "TotalPowerConsumption"),
+        ("energy_cost", "Energy", "CostTodayUSD"),
+        
+        # Maintenance
+        ("pump1_health", "Maintenance", "Pump1HealthScore"),
+        ("pump2_health", "Maintenance", "Pump2HealthScore"),
+        ("line2_health", "Maintenance", "Line2HealthScore"),
+        
+        # Alarms
+        ("active_alarms", "Alarms", "ActiveAlarms"),
+        ("last_alarm", "Alarms", "LastAlarmMessage"),
+    ]
+    
+    node_map = {}
+    
+    # Browse the entire tree
+    print("📚 Browsing server structure...")
+    tree = await client.browse_all()
+    
+    # Recursively search the tree
+    def search_tree(tree_node, path=""):
+        """Recursively search the browsed tree"""
+        if isinstance(tree_node, dict):
+            browse_name = tree_node.get('browse_name', '')
+            node_id = tree_node.get('id', '')
             
-            # For quality, alert if BELOW threshold
-            if name == "quality_pass_rate":
-                if value < threshold:
-                    self.alert_count += 1
-                    return f"🚨 ALERT {self.alert_count}: Quality rate {value:.1f}% below target {threshold}%"
-            # For others, alert if ABOVE threshold
-            else:
-                if value > threshold:
-                    self.alert_count += 1
-                    return f"🚨 ALERT {self.alert_count}: {name} = {value:.2f} exceeds threshold {threshold}"
-        
-        return None
+            # Check against all search targets
+            for friendly_name, parent, child in search_targets:
+                if parent in browse_name and child in browse_name:
+                    node_map[friendly_name] = node_id
+                    print(f"  ✓ Found {friendly_name}: {node_id}")
+            
+            # Search children
+            for child_node in tree_node.get('children', []):
+                search_tree(child_node, path + "/" + str(browse_name))
+        elif isinstance(tree_node, list):
+            for item in tree_node:
+                search_tree(item, path)
     
-    def update_value(self, name, value):
-        """Update stored value and calculate trends"""
-        self.values[name] = value
+    search_tree(tree)
     
-    def get_summary(self):
-        """Get current values summary"""
-        return f"""
-📊 Current Values:
-  • Pump 1 Vibration: {self.values.get('pump1_vibration', 0):.2f} mm/s
-  • Pump 2 Vibration: {self.values.get('pump2_vibration', 0):.2f} mm/s ⚠️
-  • Pump 2 Temperature: {self.values.get('pump2_temperature', 0):.1f} °C
-  • Line 2 Motor Temp: {self.values.get('line2_motor_temp', 0):.1f} °C
-  • Quality Pass Rate: {self.values.get('quality_pass_rate', 0):.1f} %
-  • Total Alerts: {self.alert_count}
-"""
+    print(f"\n✅ Discovered {len(node_map)} nodes")
+    return node_map
 
 
 async def main():
-    # Initialize client and monitor
+    # Connect to server
     client = OPCUAClient(server_url="opc.tcp://localhost:4840/freeopcua/server/")
-    monitor = PlantMonitor()
     
     print("🔌 Connecting to manufacturing plant...")
     await client.connect()
     print("✅ Connected!\n")
     
-    # Map node IDs to meaningful names
-    subscriptions = {
-        "ns=2;i=25": "pump1_vibration",        # Pump 1 Vibration
-        "ns=2;i=32": "pump2_vibration",        # Pump 2 Vibration (CRITICAL - will fail!)
-        "ns=2;i=31": "pump2_temperature",      # Pump 2 Temperature
-        "ns=2;i=11": "line2_motor_temp",       # Line 2 Motor Temperature
-        "ns=2;i=42": "quality_pass_rate",      # Quality Pass Rate
-    }
+    # Discover nodes automatically
+    node_map = await discover_and_map_nodes(client)
     
-    print("📡 Subscribing to critical equipment...")
-    for node_id, name in subscriptions.items():
-        await client.subscribe_to_node(node_id)
-        print(f"  ✓ {name}")
+    if not node_map:
+        print("❌ No nodes discovered! Check server structure.")
+        return
     
-    print("\n🎯 Monitoring plant (Ctrl+C to stop)...")
+    print("\n" + "=" * 80)
+    print("📡 Subscribing to discovered nodes...")
     print("=" * 80)
     
-    event_count = 0
-    last_summary_time = datetime.now()
+    # Subscribe to critical nodes
+    critical_nodes = [
+        'pump1_vibration',
+        'pump2_vibration',  # CRITICAL - will fail!
+        'pump2_temperature',  # CRITICAL - will fail!
+        'line2_motor_temp',
+        'quality_pass_rate',
+    ]
     
-    async for event in client.stream():
-        event_count += 1
-        
-        # Get the name for this node
-        node_id = event['node_id']
-        if node_id in subscriptions:
-            name = subscriptions[node_id]
-            value = event['value']
-            timestamp = event['timestamp']
+    subscribed = []
+    for name in critical_nodes:
+        if name in node_map:
+            try:
+                node_id = node_map[name]
+                await client.subscribe_to_node(node_id)
+                subscribed.append((name, node_id))
+                print(f"  ✓ Subscribed to {name}")
+            except Exception as e:
+                print(f"  ✗ Failed to subscribe to {name}: {e}")
+    
+    if not subscribed:
+        print("❌ No subscriptions created!")
+        return
+    
+    print(f"\n✅ Subscribed to {len(subscribed)} nodes")
+    print("\n🎯 Streaming real-time data (Ctrl+C to stop)...")
+    print("=" * 80)
+    
+    # Stream events
+    event_count = 0
+    values = {}
+    
+    try:
+        async for event in client.stream():
+            event_count += 1
             
-            # Update monitor
-            monitor.update_value(name, value)
+            # Find the friendly name for this node
+            friendly_name = None
+            for name, node_id in subscribed:
+                if node_id == event['node_id']:
+                    friendly_name = name
+                    break
             
-            # Check for alerts
-            alert = monitor.check_alerts(name, value)
-            
-            if alert:
-                print(f"\n{alert}")
-                print(f"  Time: {timestamp}")
-                print(f"  Node: {name}")
-                print()
-            
-            # Print summary every 20 events
-            if event_count % 20 == 0:
-                print(monitor.get_summary())
-                print("=" * 80)
+            if friendly_name:
+                value = event['value']
+                timestamp = event['timestamp']
+                values[friendly_name] = value
+                
+                # Show update
+                print(f"[{event_count:4d}] {timestamp} | {friendly_name:25s} = {value:8.2f}")
+                
+                # Check for alerts
+                if friendly_name == 'pump2_vibration' and value > 5.0:
+                    print(f"       🚨 WARNING: Pump 2 vibration HIGH ({value:.2f} mm/s)")
+                
+                if friendly_name == 'pump2_temperature' and value > 70.0:
+                    print(f"       🚨 WARNING: Pump 2 temperature HIGH ({value:.1f} °C)")
+                
+                # Summary every 20 events
+                if event_count % 20 == 0:
+                    print("\n📊 Current Status:")
+                    for name, val in values.items():
+                        print(f"   • {name:25s}: {val:8.2f}")
+                    print("=" * 80)
+    
+    except KeyboardInterrupt:
+        print("\n\n👋 Monitoring stopped")
 
 
 if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        print("\n\n👋 Monitoring stopped")
+    asyncio.run(main())

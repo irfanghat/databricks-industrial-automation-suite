@@ -14,6 +14,7 @@ class CertificateManager:
     DEFAULT_KEY_FILENAME = "client_key.pem"
     DEFAULT_CONFIG_FILENAME = "openssl_opcua.cnf"
 
+
     def __init__(
         self,
         certs_dir: Optional[str] = None,
@@ -31,6 +32,7 @@ class CertificateManager:
         self.uris = uris or ["urn:freeopcua:client"]
 
         os.makedirs(self.certs_dir, exist_ok=True)
+
 
     def generate_certificate(self, overwrite: bool = False) -> Dict[str, str]:
         if (
@@ -73,6 +75,7 @@ class CertificateManager:
 
         except Exception as e:
             raise RuntimeError(f"Certificate generation failed: {str(e)}")
+
 
     def _write_openssl_config(self) -> None:
         """

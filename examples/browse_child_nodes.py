@@ -1,14 +1,19 @@
 import asyncio
 from databricks_industrial_automation_suite.integrations.opcua import OPCUAClient
 
+# ----------------------------------------------------------------------
+# Working with Authentication
+#-----------------------------------------------------------------------
 
-oc = OPCUAClient(
-    server_url="opc.tcp://opcua.demo-this.com:51210/UA/SampleServer",
-    security_policy="Basic256Sha256",
-    message_security_mode="SignAndEncrypt",
-    certificate_path="/tmp/certs/client_cert.pem",
-    private_key_path="/tmp/certs/client_key.pem",
-)
+# oc = OPCUAClient(
+#     server_url="opc.tcp://opcua.demo-this.com:51210/UA/SampleServer",
+#     security_policy="Basic256Sha256",
+#     message_security_mode="SignAndEncrypt",
+#     certificate_path="/tmp/certs/client_cert.pem",
+#     private_key_path="/tmp/certs/client_key.pem",
+# )
+
+oc = OPCUAClient(server_url="opc.tcp://localhost:4840/freeopcua/server/")
 
 
 async def main():

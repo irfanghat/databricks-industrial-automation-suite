@@ -31,6 +31,7 @@ class OPCUAClient:
         self.subscribed_nodes = set()
         self.queue: asyncio.Queue[Dict] = asyncio.Queue()
 
+
     async def connect(self) -> None:
         if self.security_policy != "None":
             security_string = f"{self.security_policy},{self.message_security_mode}"
@@ -45,11 +46,13 @@ class OPCUAClient:
         await self.client.connect()
         _logger.info(f"Connected to OPC UA server: {self.server_url}")
 
+
     async def disconnect(self) -> None:
         if self.subscription:
             await self.subscription.delete()
         await self.client.disconnect()
         _logger.info("Disconnected from OPC UA server")
+
 
     async def subscribe_to_node(self, node_id: str) -> None:
         node = self.client.get_node(node_id)
@@ -65,15 +68,18 @@ class OPCUAClient:
 
         _logger.info(f"Subscribed to node: {node_id} ({browse_name})")
 
+
     async def stream(self) -> AsyncGenerator[Dict, None]:
         while True:
             update = await self.queue.get()
             yield update
 
+
     async def browse_all(self) -> List[Dict]:
         root = self.client.nodes.root
         children = await root.get_children()
         return [await self._browse_node_recursive(node) for node in children]
+
 
     async def browse_children(self, node_id: str) -> List[Dict]:
         node = self.client.get_node(node_id)
@@ -86,11 +92,13 @@ class OPCUAClient:
             for child in children
         ]
 
+
     async def get_security_policies(self) -> List[str]:
         await self.connect()
         endpoints = await self.client.get_endpoints()
         await self.disconnect()
         return [ep.SecurityPolicyUri for ep in endpoints]
+
 
     async def _browse_node_recursive(self, node) -> Dict:
         try:
@@ -105,13 +113,15 @@ class OPCUAClient:
         except Exception as e:
             return {"error": str(e)}
 
+
     class _SubHandler:
         def __init__(self, outer: "OPCUAClient"):
             self.outer = outer
 
+
         def datachange_notification(self, node, val, data):
             node_id = node.nodeid.to_string()
-            browse_name = self.outer.node_metadata.get(node_id, "Unknown")
+            browse_name = self.outer.node_metadata.get(node_id, "UNKNOWN NODE ID")
             event = {
                 "node_id": node_id,
                 "browse_name": browse_name,
