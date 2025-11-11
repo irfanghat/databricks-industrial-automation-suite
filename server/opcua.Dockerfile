@@ -8,10 +8,9 @@ RUN apt-get update && apt-get install -y \
     libxslt1-dev \
     && rm -rf /var/lib/apt/lists/*
 
-COPY server/requirements.txt .
+COPY server/ .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY server/ .
 
 EXPOSE 4840
 
