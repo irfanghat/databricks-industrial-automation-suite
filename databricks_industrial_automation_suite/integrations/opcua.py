@@ -1,11 +1,9 @@
 import asyncio
-import logging
 from typing import Optional, List, Dict, AsyncGenerator
 from datetime import datetime, timezone
 
 from asyncua import Client
-
-_logger = logging.getLogger(__name__)
+from databricks_industrial_automation_suite.utils.logger import _logger
 
 
 class OPCUAClient:

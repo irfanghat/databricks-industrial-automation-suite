@@ -14,7 +14,7 @@
         "list:all:containers": "docker ps -a | grep dias_",
         "list:all:images": "docker images | grep dias_",
 
-        "build:docker:dias_opcua_server": "docker build --pull --rm -f opcua.Dockerfile -t irfanghat/dias_opcua_server:latest .",
+        "build:docker:dias_opcua_server": "docker build --pull --rm -f server/opcua.Dockerfile -t irfanghat/dias_opcua_server:latest .",
 
         "run:dias_opcua_server": "docker run --rm -p 4840:4840 irfanghat/dias_opcua_server:latest",
         
