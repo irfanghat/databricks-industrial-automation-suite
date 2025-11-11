@@ -1,0 +1,37 @@
+{
+    "name": "databricks-industrial-automation-suite",
+    "version": "0.0.1",
+    "description": "A comprehensive library designed to support all major industrial automation protocols within the Databricks ecosystem.",
+    "directories": {
+        "test": "tests"
+    },
+    "scripts": {
+        "install:openssl": "sudo apt-get update && sudo apt-get install -y pkg-config libssl-dev",
+        "install:deps": "source .venv/bin/activate && pip install poetry && poetry install",
+
+        "clean:docker": "sudo docker ps -a | awk '/dias_/ {print $1}' | xargs -r sudo docker rm -f && sudo docker images | awk '/dias_/ {print $3}' | xargs -r sudo docker rmi -f",
+
+        "list:all:containers": "docker ps -a | grep dias_",
+        "list:all:images": "docker images | grep dias_",
+
+        "build:docker:dias_opcua_server": "docker build --pull --rm -f opcua.Dockerfile -t irfanghat/dias_opcua_server:latest .",
+
+        "run:dias_opcua_server": "docker run --rm -p 4840:4840 irfanghat/dias_opcua_server:latest",
+        
+        "push:docker:dias_opcua_server": "docker push irfanghat/dias_opcua_server:latest"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/irfanghat/databricks-industrial-automation-suite.git"
+    },
+    "keywords": [
+        "api",
+        "iot"
+    ],
+    "author": "Irfan Ghat <irfanghat@gmail.com>",
+    "license": "Apache 2.0",
+    "bugs": {
+        "url": "https://github.com/irfanghat/databricks-industrial-automation-suite/issues"
+    },
+    "homepage": "https://github.com/irfanghat/databricks-industrial-automation-suite#readme"
+}

@@ -1,0 +1,7 @@
+asyncua
+asyncio
+cryptography
+lxml
+python-dateutil
+pytz
+tabulate
