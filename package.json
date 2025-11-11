@@ -18,7 +18,9 @@
 
         "run:docker": "docker run --rm -p 4840:4840 irfanghat/dias_opcua_server:latest",
         
-        "push:docker": "docker push irfanghat/dias_opcua_server:latest"
+        "push:docker": "docker push irfanghat/dias_opcua_server:latest",
+
+        "publish": "poetry publish"
     },
     "repository": {
         "type": "git",

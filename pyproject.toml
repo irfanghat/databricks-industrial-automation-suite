@@ -1,9 +1,10 @@
 [tool.poetry]
 name = "databricks-industrial-automation-suite"
-version = "0.0.2"
+version = "0.0.3"
 description = "A comprehensive library designed to support all major industrial automation protocols within the Databricks ecosystem."
 authors = ["Irfan Ghat <irfanghat@gmail.com>"]
 packages = [{include = "databricks_industrial_automation_suite"}]
+readme = "README.md"
 
 [tool.poetry.dependencies]
 asyncua = "*"
