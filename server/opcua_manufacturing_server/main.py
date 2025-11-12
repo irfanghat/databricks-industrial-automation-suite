@@ -20,7 +20,7 @@ import random
 import time
 from asyncua import Server, ua
 from asyncua.common.methods import uamethod
-from utils.logger import _logger
+from .utils.logger import _logger
 
 
 SERVER_ENDPOINT = "opc.tcp://0.0.0.0:4840/freeopcua/server/"
@@ -494,7 +494,8 @@ async def main():
             await asyncio.sleep(1)
 
 
-if __name__ == "__main__":
+def run():
+    """Entrypoint for running the server."""
     try:
         asyncio.run(main(), debug=False)
     except KeyboardInterrupt:
@@ -503,3 +504,6 @@ if __name__ == "__main__":
         _logger.info("•" * 50)
     except Exception as e:
         _logger.error(f"Server error: {e}", exc_info=True)
+
+if __name__ == "__main__":
+    run()

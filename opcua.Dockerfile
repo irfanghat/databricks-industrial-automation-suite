@@ -9,9 +9,9 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 COPY server/ .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r ./opcua_manufacturing_server/requirements.txt
 
 
 EXPOSE 4840
 
-CMD ["python", "__init__.py"]
+CMD ["python", "opcua_manufacturing_server/main.py"]
